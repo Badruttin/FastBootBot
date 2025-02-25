@@ -31,9 +31,9 @@ async def register_start_user(message: Message):
     full_name = message.from_user.full_name
     if db_register_user(full_name, chat_id):
         await message.answer(text = 'Авторизация прошла успешно')
-        # TODO Показать меню
+        await show_main_menu(message)
     else:
-        message.answer(text = 'Для связи с Вами нам необходим контактный номер телефона', reply_markup=share_phone_button())
+        await message.answer(text = 'Для связи с Вами нам необходим контактный номер телефона', reply_markup=share_phone_button())
 
 @dp.message(F.contact)
 async def update_user_info_finish_register(message: Message):
@@ -43,7 +43,24 @@ async def update_user_info_finish_register(message: Message):
     db_update_user(chat_id, phone)
     if db_create_user_cart(chat_id):
         await message.answer(text='Регистрация прошла успешно')
-    # TODO Показать меню
+    await show_main_menu(message)
+    
+async def show_main_menu(message: Message):
+    """Сделать заказ, История, Корзинка, Настройки"""
+    await message.answer(text='Выберите направление',
+                         reply_markup=generate_main_menu())
+
+
+@dp.message(F.text == '🍩 Сделать заказ')
+async def make_order(message: Message):
+    """Реакция на кнопку Сделать заказ"""
+    chat_id = message.chat.id
+    # TODO Получить id корзины пользователя
+    await bot.send_message(chat_id=chat_id,
+                           text = 'Погнали',
+                           reply_markup=back_to_main_menu())
+    await message.answer(text = 'Выберите категорию', reply_markup='')
+
 
 async def main():
     await dp.start_polling(bot)

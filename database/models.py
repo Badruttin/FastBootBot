@@ -88,7 +88,7 @@ class Products(Base):
 
 def main():
     Base.metadata.create_all(engine)
-    print (BD_USER)
+    #print (BD_USER)
     categories = ('Лаваши', 'Донары', 'Хот-Доги', 'Десерты', 'Соусы')
     products = (
         (1, 'Мини Лаваш', 20000, 'Мясо, тесто, помидоры', 'media/lavhash/i.jpeg'),

@@ -43,4 +43,13 @@ def db_create_user_cart(chat_id: int):
     except AttributeError:
         """Если контакт отправил анонимный пользователь"""
         db_session.rollback()
+        
+def db_get_all_category() -> Iterable:
+    """Получаем все категории """
+    try:
+        query = db_session.scalars(select(Categories))
+        pass
+    except IntegrityError:
+        pass
+    return query
     
