@@ -3,7 +3,7 @@ from os import getenv
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from dotenv import load_dotenv
 from keyboards.inline_kb import *
 from keyboards.reply_kb import *
@@ -59,8 +59,62 @@ async def make_order(message: Message):
     await bot.send_message(chat_id=chat_id,
                            text = 'Погнали',
                            reply_markup=back_to_main_menu())
-    await message.answer(text = 'Выберите категорию', reply_markup='')
+    await message.answer(text = 'Выберите категорию', reply_markup=generate_category_menu())
 
+@dp.message(F.text.regexp(r'^Г[а-я]+ [а-я]{4}'))
+async def return_to_main_menu(message: Message):
+    """Реакция на кнопку Главное меню"""
+    await bot.delete_message(chat_id=message.chat.id,
+                             message_id= message.message_id-1)
+    await show_main_menu(message)
+
+@dp.callback_query(F.data.regexp(r'category_[1-9]'))
+async def show_product_button(call: CallbackQuery):
+    """Показ всех продуктов выбранной категории"""
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+    category_id = int(call.data.split('_')[-1])
+    await bot.edit_message_text(text = 'Выберите продукт',
+                                chat_id=chat_id,
+                                message_id=message_id,
+                                reply_markup=show_product_by_category(category_id))
+    
+@dp.callback_query(F.data == 'return_to_category')
+async def return_to_category_button(call: CallbackQuery):
+    """Возврат на один уровень вверх к меню выбора категорий"""
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+    await bot.edit_message_text(chat_id=chat_id,
+                                message_id=message_id,
+                                text = 'Выберите категорию',
+                                reply_markup=generate_category_menu())
+    
+@dp.callback_query(F.data.contains('product_'))
+async def show_product_detail(call: CallbackQuery):
+    """Детализация информации о продукте"""
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+    product_id = int(call.data.split('_')[-1])
+    product = db_get_product_by_id(product_id)
+    await bot.delete_message(chat_id=chat_id,
+                            message_id=message_id,
+                            )
+    if user_cart_id :=db_get_user_cart(chat_id):
+        print(user_cart_id, '---------------------')
+        db_update_to_cart(price=product.price, cart_id=user_cart_id)
+        text = f'<b>{product.product_name}</b>\n\n'
+        text += f'<b>Ингридиенты</b>{product.description}\n'
+        text += f'Цена: <b>{product.price}</b> руб.\n'
+        
+        await bot.send_photo(chat_id=chat_id,
+                             photo = FSInputFile(path=product.image),
+                             caption=text)
+        
+    else:
+        bot.send_message(chat_id=chat_id,
+                         text='К сожалению у нас нет Вашего номера телефона',
+                         reply_markup=share_phone_button())
+    
 
 async def main():
     await dp.start_polling(bot)
